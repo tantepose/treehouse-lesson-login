@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var session = require('express-session');
+var MongoStore = require('connect-mongo')(session);
 var app = express();
 
 // mongodb connection på localhost
@@ -11,12 +12,21 @@ var db = mongoose.connection;
 // mongo errors
 db.on('error', console.error.bind(console, 'connection error:'));
 
-// use sessions for tracking logins
+// use sessions for tracking logins OG mongostore
 app.use(session({
   secret: 'treehouse loves you', // sign session id cookie
   resave: true, // resaves i session stores uansett
-  saveUninitialized: false // forces en uinit session å IKKE lagres
+  saveUninitialized: false, // forces en uinit session å IKKE lagres
+  store: new MongoStore({ // bruke mongostore for lagring
+    mongooseConnection: db
+  })
 }));
+
+// gjøre bruker-id tilgjengelig i pug templates som 'currentUser'
+app.use(function (req, res, next) {
+  res.locals.currentUser = req.session.userId; // res.locals er en sånn shit
+  next();
+});
 
 // parse incoming requests
 app.use(bodyParser.json());
